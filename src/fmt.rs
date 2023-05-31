@@ -18,6 +18,8 @@ pub fn write_text_trimmed(
         return Ok(());
     };
 
+    write!(w, "{}", first.unwrap())?;
+
     for next in text {
         write!(w, "{last}")?;
         last = next;
