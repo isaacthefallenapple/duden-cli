@@ -1,17 +1,15 @@
 use std::fmt::{self, Write};
 use std::io::stdin;
 
-use reqwest::blocking as reqwest;
-use scraper::{Html, Selector};
+use anyhow::Result;
+use scraper::Selector;
 
-pub fn search(term: &str) {
+use crate::fetch;
+
+pub fn search(term: &str) -> Result<()> {
     println!("Searching \"{term}\"...");
 
-    let res = reqwest::get(&format!("https://www.duden.de/suchen/dudenonline/{term}"));
-    let res = res.unwrap();
-    let text = res.text().unwrap();
-
-    let doc = Html::parse_document(&text);
+    let doc = fetch::html(&format!("https://www.duden.de/suchen/dudenonline/{term}"))?;
 
     let mut results = Vec::new();
 
@@ -52,7 +50,7 @@ pub fn search(term: &str) {
 
     if results.is_empty() {
         println!("No results");
-        return;
+        return Ok(());
     }
 
     for (i, item) in results.iter().enumerate() {
@@ -61,16 +59,17 @@ pub fn search(term: &str) {
     }
 
     let mut input = String::new();
-    stdin().read_line(&mut input).unwrap();
+    stdin().read_line(&mut input)?;
 
     let selection: usize = input.trim().parse().expect("not a number");
 
     let Some(result) = results.get(selection) else {
         eprintln!("invalid selection {selection}");
-        return;
+        return Ok(());
     };
 
     println!("Find more at {}", result.source);
+    Ok(())
 }
 
 struct Item<'s> {
