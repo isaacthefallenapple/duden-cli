@@ -1,5 +1,6 @@
 use std::env;
 
+mod fetch;
 mod search;
 
 fn main() {
