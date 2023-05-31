@@ -94,12 +94,10 @@ struct Item<'s> {
 }
 
 impl<'s> fmt::Display for Item<'s> {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    fn fmt(&self, mut f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "\x1b[1m")?;
         // skip soft hyphens
-        for c in self.word.chars().filter(|&c| c != '\u{ad}') {
-            f.write_char(c)?;
-        }
+        crate::fmt::write_no_shys(&mut f, self.word)?;
         write!(f, "\x1b[m")?;
 
         if let Some(snippet) = self.snippet {
