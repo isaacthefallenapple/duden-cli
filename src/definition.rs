@@ -1,3 +1,5 @@
+use std::fmt;
+
 use anyhow::Result;
 use scraper::{ElementRef, Html, Selector};
 
@@ -13,8 +15,21 @@ pub struct Definition<'a> {
 impl Definition<'_> {
     pub fn title(&self) -> String {
         let mut title = String::with_capacity(self.title.len());
-        crate::fmt::write_no_shys(&mut title, self.title).unwrap();
+        crate::fmt::write_without_shys(&mut title, self.title).unwrap();
         title
+    }
+}
+
+impl fmt::Display for Definition<'_> {
+    fn fmt(&self, mut f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "\x1b[1m")?;
+        crate::fmt::write_without_shys(&mut f, self.title)?;
+        write!(f, "\x1b[m")?;
+        writeln!(f, "\n")?;
+        for (i, meaning) in (1..).zip(&self.meanings) {
+            writeln!(&mut f, "{i}) {meaning}")?;
+        }
+        Ok(())
     }
 }
 
@@ -50,9 +65,9 @@ struct Spelling<'a> {
     related: Vec<&'a str>,
 }
 
-#[derive(Default, Debug)]
+#[derive(Debug)]
 struct SimpleMeaning<'a> {
-    text: String,
+    text: scraper::element_ref::Text<'a>,
     usage: Option<&'a str>,
     example: Option<Vec<&'a str>>,
 }
@@ -63,13 +78,21 @@ impl<'html> SimpleMeaning<'html> {
         let text = html
             .select(&text_selector)
             .next()
-            .map(|text| text.text().collect())
+            .map(|text| text.text())
             .ok_or(anyhow::anyhow!("simple meaning has no text"))?;
 
         Ok(Self {
             text,
-            ..Self::default()
+            usage: None,
+            example: None,
         })
+    }
+}
+
+impl fmt::Display for SimpleMeaning<'_> {
+    fn fmt(&self, mut f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        crate::fmt::write_text_trimmed(&mut f, self.text.clone())?;
+        Ok(())
     }
 }
 
@@ -77,6 +100,20 @@ impl<'html> SimpleMeaning<'html> {
 enum Meaning<'a> {
     Simple(SimpleMeaning<'a>),
     Complex(Vec<SimpleMeaning<'a>>),
+}
+
+impl fmt::Display for Meaning<'_> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Simple(meaning) => write!(f, "{meaning}")?,
+            Self::Complex(meanings) => {
+                for meaning in meanings {
+                    writeln!(f, "{meaning}")?;
+                }
+            }
+        }
+        Ok(())
+    }
 }
 
 impl<'html> Meaning<'html> {
