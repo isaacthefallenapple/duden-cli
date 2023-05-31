@@ -83,6 +83,7 @@ pub fn search(term: &str) -> Result<()> {
     let definition_html = fetch::html(&url(result.source))?;
     let definition = definition::Definition::parse(&definition_html)?;
     println!("{}", definition.title());
+    println!("{:?}", definition);
     Ok(())
 }
 
