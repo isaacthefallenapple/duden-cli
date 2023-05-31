@@ -6,6 +6,7 @@ mod definition;
 mod fetch;
 mod fmt;
 mod search;
+mod selector;
 
 fn main() -> Result<()> {
     let mut args = env::args().skip(1);

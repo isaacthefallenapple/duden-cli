@@ -4,6 +4,7 @@ use std::io::stdin;
 use anyhow::Result;
 use scraper::Selector;
 
+use crate::selector::{selector, selectors};
 use crate::{definition, fetch};
 
 /// The Duden.de base url without a trailing slash
@@ -25,14 +26,9 @@ pub fn search(term: &str) -> Result<()> {
 
     let mut results = Vec::new();
 
-    let vignette_selector = Selector::parse(".vignette").unwrap();
-    let vignette_word_selector = Selector::parse("strong").unwrap();
-    let vignette_source_selector = Selector::parse("a.vignette__label").unwrap();
-    let vignette_snippet_selector = Selector::parse(".vignette__snippet").unwrap();
-
-    for vignette in doc.select(&vignette_selector) {
+    for vignette in doc.select(selectors::vignette_selector()) {
         let word = vignette
-            .select(&vignette_word_selector)
+            .select(selectors::vignette_word_selector())
             .next()
             .unwrap()
             .text()
@@ -40,13 +36,13 @@ pub fn search(term: &str) -> Result<()> {
             .unwrap();
 
         let source = vignette
-            .select(&vignette_source_selector)
+            .select(selectors::vignette_source_selector())
             .next()
             .and_then(|source| source.value().attr("href"))
             .unwrap();
 
         let snippet = vignette
-            .select(&vignette_snippet_selector)
+            .select(selectors::vignette_snippet_selector())
             .next()
             .and_then(|snippet| snippet.text().next())
             .map(|snippet| snippet.trim());
@@ -106,4 +102,11 @@ impl<'s> fmt::Display for Item<'s> {
 
         Ok(())
     }
+}
+
+selectors! {
+    selector!(vignette_selector = ".vignette");
+    selector!(vignette_word_selector = "strong");
+    selector!(vignette_source_selector = "a.vignette__label");
+    selector!(vignette_snippet_selector = ".vignette__snippet");
 }

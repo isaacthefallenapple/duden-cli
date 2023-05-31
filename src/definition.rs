@@ -1,5 +1,6 @@
 use std::fmt;
 
+use crate::selector::{selector, selectors};
 use anyhow::Result;
 use scraper::{ElementRef, Html, Selector};
 
@@ -35,18 +36,15 @@ impl fmt::Display for Definition<'_> {
 
 impl<'html> Definition<'html> {
     pub fn parse(html: &'html Html) -> Result<Self> {
-        let title_selector = Selector::parse("h1 > span").unwrap();
-        let meanings_selector = Selector::parse("#bedeutungen .enumeration__item").unwrap();
-
         let title = html
-            .select(&title_selector)
+            .select(selectors::title_selector())
             .next()
             .and_then(|title| title.text().next())
             .expect("definition doesn't have title");
 
         let mut meanings = Vec::new();
 
-        for meaning in html.select(&meanings_selector) {
+        for meaning in html.select(selectors::meanings_selector()) {
             meanings.push(Meaning::parse(meaning)?);
         }
 
@@ -74,9 +72,8 @@ struct SimpleMeaning<'a> {
 
 impl<'html> SimpleMeaning<'html> {
     fn parse(html: ElementRef<'html>) -> Result<Self> {
-        let text_selector = Selector::parse(".enumeration__text").unwrap();
         let text = html
-            .select(&text_selector)
+            .select(selectors::text_selector())
             .next()
             .map(|text| text.text())
             .ok_or(anyhow::anyhow!("simple meaning has no text"))?;
@@ -121,4 +118,10 @@ impl<'html> Meaning<'html> {
         let simple_meaning = SimpleMeaning::parse(html)?;
         Ok(Self::Simple(simple_meaning))
     }
+}
+
+selectors! {
+    selector!(text_selector = ".enumeration__text");
+    selector!(title_selector = "h1 > span");
+    selector!(meanings_selector = "#bedeutungen .enumeration__item");
 }
