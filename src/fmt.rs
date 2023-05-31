@@ -11,23 +11,19 @@ pub fn write_text_trimmed(
     mut text: scraper::element_ref::Text<'_>,
 ) -> fmt::Result {
     let first: Option<&str> = text.next().map(|t| t.trim_start());
-    let mut last: Option<&str> = text.next();
-
-    if last.is_none() {
+    let Some(mut last) = text.next() else {
         if let Some(t) = first {
             write!(w, "{}", t.trim_end())?;
         }
         return Ok(());
-    }
+    };
 
-    while let next @ Some(_) = text.next() {
-        let t = last.unwrap();
-        write!(w, "{t}")?;
+    for next in text {
+        write!(w, "{last}")?;
         last = next;
     }
 
-    let t = last.unwrap();
-    write!(w, "{t}")?;
+    write!(w, "{}", last.trim_end())?;
 
     Ok(())
 }
