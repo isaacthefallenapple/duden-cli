@@ -4,6 +4,7 @@ use anyhow::Result;
 
 mod definition;
 mod fetch;
+mod fmt;
 mod search;
 
 fn main() -> Result<()> {
