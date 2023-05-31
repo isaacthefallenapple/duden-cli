@@ -6,10 +6,22 @@ use scraper::Selector;
 
 use crate::fetch;
 
+/// The Duden.de base url without a trailing slash
+const BASE_URL: &str = "https://www.duden.de";
+
+fn url(path: &str) -> String {
+    format!("{BASE_URL}/{path}")
+}
+
+fn search_url(term: &str) -> String {
+    let path = format!("suchen/dudenonline/{term}");
+    url(&path)
+}
+
 pub fn search(term: &str) -> Result<()> {
     println!("Searching \"{term}\"...");
 
-    let doc = fetch::html(&format!("https://www.duden.de/suchen/dudenonline/{term}"))?;
+    let doc = fetch::html(&search_url(term))?;
 
     let mut results = Vec::new();
 
