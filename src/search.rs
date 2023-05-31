@@ -4,7 +4,7 @@ use std::io::stdin;
 use anyhow::Result;
 use scraper::Selector;
 
-use crate::fetch;
+use crate::{definition, fetch};
 
 /// The Duden.de base url without a trailing slash
 const BASE_URL: &str = "https://www.duden.de";
@@ -80,7 +80,9 @@ pub fn search(term: &str) -> Result<()> {
         return Ok(());
     };
 
-    println!("Find more at {}", result.source);
+    let definition_html = fetch::html(&url(result.source))?;
+    let definition = definition::Definition::parse(&definition_html)?;
+    println!("{}", definition.title());
     Ok(())
 }
 

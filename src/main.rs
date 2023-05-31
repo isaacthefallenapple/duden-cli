@@ -2,6 +2,7 @@ use std::env;
 
 use anyhow::Result;
 
+mod definition;
 mod fetch;
 mod search;
 
