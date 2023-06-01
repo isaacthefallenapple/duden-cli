@@ -2,7 +2,7 @@ use std::fmt;
 
 use crate::selector::{selector, selectors};
 use anyhow::Result;
-use scraper::{ElementRef, Html, Selector};
+use scraper::{ElementRef, Html};
 
 #[derive(Debug)]
 pub struct Definition<'a> {
@@ -88,6 +88,14 @@ impl<'html> SimpleMeaning<'html> {
 
 impl fmt::Display for SimpleMeaning<'_> {
     fn fmt(&self, mut f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let width = f.width().unwrap_or_default();
+
+        for _ in 0..width {
+            write!(&mut f, "\t")?;
+        }
+        if let Some(nesting) = f.precision() {
+            write!(&mut f, "{}) ", (b'a' + nesting as u8) as char)?;
+        }
         crate::fmt::write_text_trimmed(&mut f, self.text.clone())?;
         Ok(())
     }
@@ -101,11 +109,12 @@ enum Meaning<'a> {
 
 impl fmt::Display for Meaning<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let indent = f.width().unwrap_or_default();
         match self {
-            Self::Simple(meaning) => write!(f, "{meaning}")?,
+            Self::Simple(meaning) => write!(f, "{meaning:indent$}", indent = indent)?,
             Self::Complex(meanings) => {
-                for meaning in meanings {
-                    writeln!(f, "{meaning}")?;
+                for (i, meaning) in (0..).zip(meanings) {
+                    writeln!(f, "{meaning:indent$.index$}", indent = 1, index = i)?;
                 }
             }
         }
@@ -115,8 +124,17 @@ impl fmt::Display for Meaning<'_> {
 
 impl<'html> Meaning<'html> {
     fn parse(html: ElementRef<'html>) -> Result<Self> {
-        let simple_meaning = SimpleMeaning::parse(html)?;
-        Ok(Self::Simple(simple_meaning))
+        let mut sub_items = Vec::new();
+
+        for sub_item in html.select(selectors::sub_item_selector()) {
+            sub_items.push(SimpleMeaning::parse(sub_item)?);
+        }
+
+        if sub_items.is_empty() {
+            Ok(Self::Simple(SimpleMeaning::parse(html)?))
+        } else {
+            Ok(Self::Complex(sub_items))
+        }
     }
 }
 
@@ -124,4 +142,5 @@ selectors! {
     selector!(text_selector = ".enumeration__text");
     selector!(title_selector = "h1 > span");
     selector!(meanings_selector = "#bedeutungen .enumeration__item");
+    selector!(sub_item_selector = ".enumeration__sub-item");
 }
