@@ -1,6 +1,7 @@
 use std::env;
 
 use anyhow::Result;
+use reqwest::blocking as reqwest;
 
 mod definition;
 mod fetch;
@@ -15,12 +16,14 @@ fn main() -> Result<()> {
         anyhow::bail!("no command given");
     };
 
+    let client = reqwest::Client::new();
+
     match &*subcommand {
         "search" => {
             let Some(argument) = args.next() else {
                 anyhow::bail!("missing argument for `search` command");
             };
-            search::search(&argument)?;
+            search::search(&client, &argument)?;
         }
         _ => {
             anyhow::bail!("unknown command: `{}`", subcommand);

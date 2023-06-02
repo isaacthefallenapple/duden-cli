@@ -1,8 +1,10 @@
-use std::fmt::{self, Write};
+use std::fmt;
 use std::io::stdin;
+use std::sync::mpsc;
+use std::thread;
 
 use anyhow::Result;
-use scraper::Selector;
+use reqwest::blocking as reqwest;
 
 use crate::selector::{selector, selectors};
 use crate::{definition, fetch};
@@ -11,7 +13,7 @@ use crate::{definition, fetch};
 const BASE_URL: &str = "https://www.duden.de";
 
 fn url(path: &str) -> String {
-    format!("{BASE_URL}/{path}")
+    format!("{BASE_URL}/{path}", path = path.trim_start_matches('/'))
 }
 
 fn search_url(term: &str) -> String {
@@ -19,10 +21,10 @@ fn search_url(term: &str) -> String {
     url(&path)
 }
 
-pub fn search(term: &str) -> Result<()> {
+pub fn search(client: &reqwest::Client, term: &str) -> Result<()> {
     println!("Searching \"{term}\"...");
 
-    let doc = fetch::html(&search_url(term))?;
+    let doc = fetch::html(client, &search_url(term))?;
 
     let mut results = Vec::new();
 
@@ -61,7 +63,20 @@ pub fn search(term: &str) -> Result<()> {
         return Ok(());
     }
 
+    let (tx, rx) = mpsc::channel();
+    let mut handles = Vec::with_capacity(results.len());
+
     for (i, item) in results.iter().enumerate() {
+        let tx = tx.clone();
+        let source = url(item.source);
+        let client = client.clone();
+
+        let handle = thread::spawn(move || {
+            prefetch(client, i, source, tx);
+        });
+
+        handles.push(handle);
+
         print!("[{i: >2}] ");
         println!("{item}");
     }
@@ -71,13 +86,19 @@ pub fn search(term: &str) -> Result<()> {
 
     let selection: usize = input.trim().parse().expect("not a number");
 
-    let Some(result) = results.get(selection) else {
-        eprintln!("invalid selection {selection}");
-        return Ok(());
-    };
+    if selection >= results.len() {
+        anyhow::bail!("invlid selection: {selection}");
+    }
 
-    let definition_html = fetch::html(&url(result.source))?;
-    let definition = definition::Definition::parse(&definition_html)?;
+    let result = rx
+        .try_iter()
+        .find(|(i, _)| i == &selection)
+        .or_else(|| rx.iter().find(|(i, _)| i == &selection))
+        .map(|res| res.1);
+
+    let result = result.unwrap()?;
+
+    let definition = definition::Definition::parse(&result)?;
     print!("\n{}", definition);
 
     Ok(())
@@ -102,6 +123,19 @@ impl<'s> fmt::Display for Item<'s> {
 
         Ok(())
     }
+}
+
+fn prefetch(
+    client: reqwest::Client,
+    id: usize,
+    source: String,
+    sender: mpsc::Sender<(usize, Result<scraper::Html>)>,
+) {
+    println!("fetching {source}");
+    let fetched = fetch::html(&client, &source);
+    // TODO: figure out what to do here on error (can't propagate it up)
+    let _ = sender.send((id, fetched));
+    println!("sent {source}");
 }
 
 selectors! {

@@ -2,7 +2,7 @@ use std::fmt;
 
 use crate::selector::{selector, selectors};
 use anyhow::Result;
-use scraper::{ElementRef, Html};
+use scraper::{element_ref::Text, ElementRef, Html};
 
 #[derive(Debug)]
 pub struct Definition<'a> {
@@ -138,9 +138,63 @@ impl<'html> Meaning<'html> {
     }
 }
 
+struct Tuple<'a> {
+    key: Text<'a>,
+    val: ElementRef<'a>,
+}
+
+impl fmt::Display for Tuple<'_> {
+    fn fmt(&self, mut f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        crate::fmt::write_text_trimmed(&mut f, self.key.clone())?;
+        writeln!(&mut f)?;
+        crate::fmt::write_text_trimmed(&mut f, self.val.text())?;
+        Ok(())
+    }
+}
+
+fn parse_tuples(root: ElementRef<'_>) -> Result<Tuple<'_>> {
+    let key = root
+        .select(selectors::tuple_key())
+        .next()
+        .ok_or(anyhow::anyhow!("tuple doesn't have a key"))?
+        .text();
+
+    let val = root
+        .select(selectors::tuple_val())
+        .next()
+        .ok_or(anyhow::anyhow!("tuple doesn't have a val"))?;
+
+    Ok(Tuple { key, val })
+}
+
 selectors! {
     selector!(text_selector = ".enumeration__text");
     selector!(title_selector = "h1 > span");
     selector!(meanings_selector = "#bedeutungen .enumeration__item");
     selector!(sub_item_selector = ".enumeration__sub-item");
+    selector!(tuple_key = "dt.tuple__key");
+    selector!(tuple_val = "dd.tuple__val");
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_parse_tuple() -> Result<()> {
+        let html = r#"
+            <dl class="tuple">
+                <dt class="tuple__key">Gebrauch</dt>
+                <dd class="tuple__val">Chemie</dd>
+            </dl>
+        "#;
+
+        let fragment = Html::parse_fragment(html);
+        let root = fragment.root_element();
+
+        let tuple = parse_tuples(root)?;
+        eprintln!("{}", tuple);
+        panic!();
+        Ok(())
+    }
 }
