@@ -3,10 +3,10 @@ macro_rules! selectors {
         mod selectors {
             use super::*;
 
-            use std::{mem::MaybeUninit, sync::Once};
+            use ::std::sync::OnceLock;
 
-            use paste::paste;
-            use scraper::Selector;
+            use ::paste::paste;
+            use ::scraper::Selector;
 
             $($tokens)*
         }
@@ -16,17 +16,11 @@ macro_rules! selectors {
 macro_rules! selector {
     ($name:ident = $value:literal) => {
         paste! {
-            static mut [<$name:upper>]: MaybeUninit<Selector> = MaybeUninit::uninit();
-            static [<$name:upper _INIT>]: Once = Once::new();
+            static [<$name:upper>]: OnceLock<Selector> = OnceLock::new();
 
             #[doc = concat!("Select ", $value)]
             pub fn [<$name:lower>]() -> &'static Selector {
-                unsafe {
-                    [<$name:upper _INIT>].call_once(|| {
-                        [<$name:upper>].write(Selector::parse($value).unwrap());
-                    });
-                    [<$name:upper>].assume_init_ref()
-                }
+                [<$name:upper>].get_or_init(|| Selector::parse($value).unwrap())
             }
         }
     };
