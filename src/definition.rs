@@ -6,7 +6,7 @@ use scraper::{element_ref::Text, ElementRef, Html};
 
 #[derive(Debug)]
 pub struct Definition<'a> {
-    title: &'a str,
+    title: Text<'a>,
     // TODO: implement this
     // properties: _Properties<'a>,
     // spelling: _Spelling<'a>,
@@ -16,7 +16,7 @@ pub struct Definition<'a> {
 impl fmt::Display for Definition<'_> {
     fn fmt(&self, mut f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "\x1b[1m")?;
-        crate::fmt::write_without_shys(&mut f, self.title)?;
+        crate::fmt::write_text_trimmed(&mut f, true, self.title.clone())?;
         write!(f, "\x1b[m")?;
         writeln!(f, "\n")?;
         for (i, meaning) in (1..).zip(&self.meanings) {
@@ -31,7 +31,7 @@ impl<'html> Definition<'html> {
         let title = html
             .select(selectors::title_selector())
             .next()
-            .and_then(|title| title.text().next())
+            .map(|title| title.text())
             .expect("definition doesn't have title");
 
         let mut meanings = Vec::new();
@@ -107,7 +107,7 @@ impl fmt::Display for SimpleMeaning<'_> {
         if let Some(nesting) = f.precision() {
             write!(&mut f, "{}) ", (b'a' + nesting as u8) as char)?;
         }
-        crate::fmt::write_text_trimmed(&mut f, self.text.clone())?;
+        crate::fmt::write_text_trimmed(&mut f, true, self.text.clone())?;
         Ok(())
     }
 }
@@ -156,9 +156,9 @@ struct Tuple<'a> {
 
 impl fmt::Display for Tuple<'_> {
     fn fmt(&self, mut f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        crate::fmt::write_text_trimmed(&mut f, self.key.clone())?;
+        crate::fmt::write_text_trimmed(&mut f, true, self.key.clone())?;
         writeln!(&mut f)?;
-        crate::fmt::write_text_trimmed(&mut f, self.val.text())?;
+        crate::fmt::write_text_trimmed(&mut f, true, self.val.text())?;
         Ok(())
     }
 }
@@ -180,7 +180,7 @@ fn _parse_tuples(root: ElementRef<'_>) -> Result<Tuple<'_>> {
 
 selectors! {
     selector!(text_selector = ".enumeration__text");
-    selector!(title_selector = "h1 > span");
+    selector!(title_selector = "h1");
     selector!(meanings_selector = "#bedeutungen .enumeration__item");
     selector!(sub_item_selector = ".enumeration__sub-item");
     selector!(tuple_key = "dt.tuple__key");
