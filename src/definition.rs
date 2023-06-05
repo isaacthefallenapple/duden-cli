@@ -8,17 +8,9 @@ use scraper::{element_ref::Text, ElementRef, Html};
 pub struct Definition<'a> {
     title: &'a str,
     // TODO: implement this
-    // properties: Properties<'a>,
-    // spelling: Spelling<'a>,
+    // properties: _Properties<'a>,
+    // spelling: _Spelling<'a>,
     meanings: Vec<Meaning<'a>>,
-}
-
-impl Definition<'_> {
-    pub fn title(&self) -> String {
-        let mut title = String::with_capacity(self.title.len());
-        crate::fmt::write_without_shys(&mut title, self.title).unwrap();
-        title
-    }
 }
 
 impl fmt::Display for Definition<'_> {
@@ -63,13 +55,13 @@ impl<'html> Definition<'html> {
     }
 }
 
-struct Properties<'a> {
+struct _Properties<'a> {
     part_of_speech: &'a str,
     frequency: &'a str,
     pronunciation: &'a str,
 }
 
-struct Spelling<'a> {
+struct _Spelling<'a> {
     variants: Vec<&'a str>,
     related: Vec<&'a str>,
 }
@@ -77,16 +69,16 @@ struct Spelling<'a> {
 #[derive(Debug)]
 struct SimpleMeaning<'a> {
     text: scraper::element_ref::Text<'a>,
-    usage: Option<&'a str>,
-    example: Option<Vec<&'a str>>,
+    _usage: Option<&'a str>,
+    _example: Option<Vec<&'a str>>,
 }
 
 impl<'html> SimpleMeaning<'html> {
     fn new(text: Text<'html>) -> Self {
         Self {
             text,
-            example: None,
-            usage: None,
+            _example: None,
+            _usage: None,
         }
     }
 
@@ -99,8 +91,8 @@ impl<'html> SimpleMeaning<'html> {
 
         Ok(Self {
             text,
-            usage: None,
-            example: None,
+            _usage: None,
+            _example: None,
         })
     }
 }
@@ -171,7 +163,7 @@ impl fmt::Display for Tuple<'_> {
     }
 }
 
-fn parse_tuples(root: ElementRef<'_>) -> Result<Tuple<'_>> {
+fn _parse_tuples(root: ElementRef<'_>) -> Result<Tuple<'_>> {
     let key = root
         .select(selectors::tuple_key())
         .next()
@@ -212,9 +204,8 @@ mod tests {
         let fragment = Html::parse_fragment(html);
         let root = fragment.root_element();
 
-        let tuple = parse_tuples(root)?;
+        let tuple = _parse_tuples(root)?;
         eprintln!("{}", tuple);
         panic!();
-        Ok(())
     }
 }
