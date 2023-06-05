@@ -18,7 +18,9 @@ macro_rules! selector {
         paste! {
             static [<$name:upper>]: OnceLock<Selector> = OnceLock::new();
 
-            #[doc = concat!("Select ", $value)]
+            #[doc = "Select `"]
+            #[doc = $value]
+            #[doc = "`."]
             pub fn [<$name:lower>]() -> &'static Selector {
                 [<$name:upper>].get_or_init(|| Selector::parse($value).unwrap())
             }
