@@ -3,11 +3,10 @@ use std::io::stdin;
 use std::sync::mpsc;
 use std::thread;
 
-use anyhow::Result;
-use reqwest::blocking as reqwest;
-
 use crate::selector::{selector, selectors};
 use crate::{definition, fetch};
+use anyhow::Result;
+use reqwest::blocking as reqwest;
 
 /// The Duden.de base url without a trailing slash
 const BASE_URL: &str = "https://www.duden.de";
