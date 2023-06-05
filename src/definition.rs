@@ -48,6 +48,17 @@ impl<'html> Definition<'html> {
             meanings.push(Meaning::parse(meaning)?);
         }
 
+        if meanings.is_empty() {
+            let singleton_meaning = html
+                .select(selectors::singleton_meaning())
+                .next()
+                .expect("definition has no meaning at all");
+
+            meanings.push(Meaning::Simple(SimpleMeaning::new(
+                singleton_meaning.text(),
+            )));
+        }
+
         Ok(Self { title, meanings })
     }
 }
@@ -71,6 +82,14 @@ struct SimpleMeaning<'a> {
 }
 
 impl<'html> SimpleMeaning<'html> {
+    fn new(text: Text<'html>) -> Self {
+        Self {
+            text,
+            example: None,
+            usage: None,
+        }
+    }
+
     fn parse(html: ElementRef<'html>) -> Result<Self> {
         let text = html
             .select(selectors::text_selector())
@@ -174,6 +193,7 @@ selectors! {
     selector!(sub_item_selector = ".enumeration__sub-item");
     selector!(tuple_key = "dt.tuple__key");
     selector!(tuple_val = "dd.tuple__val");
+    selector!(singleton_meaning = "#bedeutung p");
 }
 
 #[cfg(test)]
