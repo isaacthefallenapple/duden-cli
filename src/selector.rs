@@ -26,5 +26,5 @@ macro_rules! selector {
     };
 }
 
-pub(crate) use selectors;
 pub(crate) use selector;
+pub(crate) use selectors;
