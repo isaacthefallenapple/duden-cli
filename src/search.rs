@@ -1,5 +1,5 @@
 use std::fmt;
-use std::io::stdin;
+use std::io::{prelude::*, stdin, BufReader, SeekFrom};
 use std::sync::mpsc;
 use std::thread;
 
@@ -99,7 +99,23 @@ pub fn search(client: &reqwest::Client, term: &str) -> Result<()> {
     let result = result.unwrap()?;
 
     let definition = definition::Definition::parse(result.root_element())?;
-    print!("\n{}", definition);
+
+    let tempfile_name = "/tmp/duden.tmp";
+    let mut temp = std::fs::OpenOptions::new()
+        .create(true)
+        .read(true)
+        .write(true)
+        .open(tempfile_name)?;
+
+    write!(temp, "{definition}")?;
+    temp.flush()?;
+
+    let mut cmd = std::process::Command::new("/bin/less")
+        .arg("-R")
+        .arg(tempfile_name)
+        .spawn()?;
+
+    drop(cmd.wait());
 
     Ok(())
 }
@@ -131,11 +147,9 @@ fn prefetch(
     source: String,
     sender: mpsc::Sender<(usize, Result<scraper::Html>)>,
 ) {
-    println!("fetching {source}");
     let fetched = fetch::html(&client, &source);
     // TODO: figure out what to do here on error (can't propagate it up)
     let _ = sender.send((id, fetched));
-    println!("sent {source}");
 }
 
 selectors! {
