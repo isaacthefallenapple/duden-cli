@@ -127,11 +127,12 @@ impl fmt::Display for SimpleMeaning<'_> {
         if let Some(examples) = &self._example {
             write!(
                 &mut f,
-                "\n\t\x1b[1mBeispiel{plural}\x1b[m",
+                "\n\t  \x1b[1mBeispiel{plural}\x1b[m",
                 plural = if examples.len() > 1 { "e" } else { "" }
             )?;
+
             for ex in examples {
-                write!(&mut f, "\n\t - ")?;
+                write!(&mut f, "\n\t   - ")?;
                 crate::fmt::write_text_trimmed(&mut f, true, ex.clone())?;
             }
         }
@@ -151,8 +152,12 @@ impl fmt::Display for Meaning<'_> {
         match self {
             Self::Simple(meaning) => write!(f, "{meaning:indent$}", indent = indent)?,
             Self::Complex(meanings) => {
-                for (i, meaning) in (0..).zip(meanings) {
-                    writeln!(f, "{meaning:indent$.index$}", indent = 1, index = i)?;
+                let mut iter = (0..).zip(meanings);
+                if let Some((i, meaning)) = iter.next() {
+                    write!(f, "{meaning:indent$.index$}", indent = 1, index = i)?;
+                }
+                for (i, meaning) in iter {
+                    write!(f, "\n{meaning:indent$.index$}", indent = 1, index = i)?;
                 }
             }
         }
