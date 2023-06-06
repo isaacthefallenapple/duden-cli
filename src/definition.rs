@@ -18,8 +18,8 @@ impl fmt::Display for Definition<'_> {
     fn fmt(&self, mut f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "\x1b[1m")?;
         crate::fmt::write_text_trimmed(&mut f, true, self.title.clone())?;
-        write!(f, "\x1b[m")?;
-        writeln!(f, "\n")?;
+        writeln!(f, "\x1b[m\n")?;
+
         for (i, meaning) in (1..).zip(&self.meanings) {
             writeln!(&mut f, "{i}) {meaning}")?;
         }
@@ -123,14 +123,15 @@ impl fmt::Display for SimpleMeaning<'_> {
             write!(&mut f, "{}) ", (b'a' + nesting as u8) as char)?;
         }
         crate::fmt::write_text_trimmed(&mut f, true, self.text.clone())?;
+
         if let Some(examples) = &self._example {
             write!(
                 &mut f,
-                "\n\x1b[1mBeispiel{plural}\x1b[m",
+                "\n\t\x1b[1mBeispiel{plural}\x1b[m",
                 plural = if examples.len() > 1 { "e" } else { "" }
             )?;
             for ex in examples {
-                write!(&mut f, "\n - ")?;
+                write!(&mut f, "\n\t - ")?;
                 crate::fmt::write_text_trimmed(&mut f, true, ex.clone())?;
             }
         }
