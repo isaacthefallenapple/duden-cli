@@ -6,6 +6,7 @@ use reqwest::blocking as reqwest;
 mod definition;
 mod fetch;
 mod fmt;
+mod parse;
 mod search;
 mod selector;
 

@@ -1,8 +1,9 @@
 use std::fmt;
 
+use crate::parse::FromElement;
 use crate::selector::{selector, selectors};
 use anyhow::Result;
-use scraper::{element_ref::Text, ElementRef, Html};
+use scraper::{element_ref::Text, ElementRef};
 
 #[derive(Debug)]
 pub struct Definition<'a> {
@@ -26,8 +27,8 @@ impl fmt::Display for Definition<'_> {
     }
 }
 
-impl<'html> Definition<'html> {
-    pub fn parse(html: &'html Html) -> Result<Self> {
+impl<'html> FromElement<'html> for Definition<'html> {
+    fn parse(html: ElementRef<'html>) -> Result<Self> {
         let title = html
             .select(selectors::title_selector())
             .next()
@@ -81,7 +82,9 @@ impl<'html> SimpleMeaning<'html> {
             _usage: None,
         }
     }
+}
 
+impl<'html> FromElement<'html> for SimpleMeaning<'html> {
     fn parse(html: ElementRef<'html>) -> Result<Self> {
         let text = html
             .select(selectors::text_selector())
@@ -133,7 +136,7 @@ impl fmt::Display for Meaning<'_> {
     }
 }
 
-impl<'html> Meaning<'html> {
+impl<'html> FromElement<'html> for Meaning<'html> {
     fn parse(html: ElementRef<'html>) -> Result<Self> {
         let mut sub_items = Vec::new();
 
@@ -149,9 +152,36 @@ impl<'html> Meaning<'html> {
     }
 }
 
-struct Tuple<'a> {
+struct Tuple<'a, Val = ElementRef<'a>> {
     key: Text<'a>,
-    val: ElementRef<'a>,
+    val: Val,
+}
+
+impl<'a> Tuple<'a> {
+    fn _parse_val<Q: FromElement<'a>>(self) -> Result<Tuple<'a, Q>> {
+        let Tuple { key, val } = self;
+        Ok(Tuple {
+            key,
+            val: Q::parse(val)?,
+        })
+    }
+}
+
+impl<'html> FromElement<'html> for Tuple<'html> {
+    fn parse(element: ElementRef<'html>) -> Result<Self> {
+        let key = element
+            .select(selectors::tuple_key())
+            .next()
+            .ok_or(anyhow::anyhow!("tuple doesn't have a key"))?
+            .text();
+
+        let val = element
+            .select(selectors::tuple_val())
+            .next()
+            .ok_or(anyhow::anyhow!("tuple doesn't have a val"))?;
+
+        Ok(Tuple { key, val })
+    }
 }
 
 impl fmt::Display for Tuple<'_> {
@@ -161,21 +191,6 @@ impl fmt::Display for Tuple<'_> {
         crate::fmt::write_text_trimmed(&mut f, true, self.val.text())?;
         Ok(())
     }
-}
-
-fn _parse_tuples(root: ElementRef<'_>) -> Result<Tuple<'_>> {
-    let key = root
-        .select(selectors::tuple_key())
-        .next()
-        .ok_or(anyhow::anyhow!("tuple doesn't have a key"))?
-        .text();
-
-    let val = root
-        .select(selectors::tuple_val())
-        .next()
-        .ok_or(anyhow::anyhow!("tuple doesn't have a val"))?;
-
-    Ok(Tuple { key, val })
 }
 
 selectors! {
@@ -191,6 +206,7 @@ selectors! {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use scraper::Html;
 
     #[test]
     fn test_parse_tuple() -> Result<()> {
@@ -204,7 +220,7 @@ mod tests {
         let fragment = Html::parse_fragment(html);
         let root = fragment.root_element();
 
-        let tuple = _parse_tuples(root)?;
+        let tuple = Tuple::parse(root)?;
         eprintln!("{}", tuple);
         panic!();
     }

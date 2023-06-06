@@ -3,6 +3,7 @@ use std::io::stdin;
 use std::sync::mpsc;
 use std::thread;
 
+use crate::parse::FromElement;
 use crate::selector::{selector, selectors};
 use crate::{definition, fetch};
 use anyhow::Result;
@@ -97,7 +98,7 @@ pub fn search(client: &reqwest::Client, term: &str) -> Result<()> {
 
     let result = result.unwrap()?;
 
-    let definition = definition::Definition::parse(&result)?;
+    let definition = definition::Definition::parse(result.root_element())?;
     print!("\n{}", definition);
 
     Ok(())
