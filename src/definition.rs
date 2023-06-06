@@ -71,7 +71,7 @@ struct _Spelling<'a> {
 struct SimpleMeaning<'a> {
     text: scraper::element_ref::Text<'a>,
     _usage: Option<&'a str>,
-    _example: Option<Vec<&'a str>>,
+    _example: Option<Vec<Text<'a>>>,
 }
 
 impl<'html> SimpleMeaning<'html> {
@@ -92,10 +92,22 @@ impl<'html> FromElement<'html> for SimpleMeaning<'html> {
             .map(|text| text.text())
             .ok_or(anyhow::anyhow!("simple meaning has no text"))?;
 
+        let note = html.select(selectors::note()).next();
+
+        let mut examples = None;
+
+        if let Some(note) = note {
+            let mut example_list = Vec::new();
+            for li in note.select(selectors::list_item()) {
+                example_list.push(li.text());
+            }
+            examples = Some(example_list);
+        }
+
         Ok(Self {
             text,
             _usage: None,
-            _example: None,
+            _example: examples,
         })
     }
 }
@@ -111,6 +123,17 @@ impl fmt::Display for SimpleMeaning<'_> {
             write!(&mut f, "{}) ", (b'a' + nesting as u8) as char)?;
         }
         crate::fmt::write_text_trimmed(&mut f, true, self.text.clone())?;
+        if let Some(examples) = &self._example {
+            write!(
+                &mut f,
+                "\n\x1b[1mBeispiel{plural}\x1b[m",
+                plural = if examples.len() > 1 { "e" } else { "" }
+            )?;
+            for ex in examples {
+                write!(&mut f, "\n - ")?;
+                crate::fmt::write_text_trimmed(&mut f, true, ex.clone())?;
+            }
+        }
         Ok(())
     }
 }
@@ -201,6 +224,8 @@ selectors! {
     selector!(tuple_key = "dt.tuple__key");
     selector!(tuple_val = "dd.tuple__val");
     selector!(singleton_meaning = "#bedeutung p");
+    selector!(note = ".note");
+    selector!(list_item = "li");
 }
 
 #[cfg(test)]
