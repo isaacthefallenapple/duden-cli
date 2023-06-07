@@ -28,9 +28,9 @@ pub fn search(client: &reqwest::Client, term: &str) -> Result<()> {
 
     let mut results = Vec::new();
 
-    for vignette in doc.select(selectors::vignette_selector()) {
+    for vignette in doc.select(selectors::vignette()) {
         let word = vignette
-            .select(selectors::vignette_word_selector())
+            .select(selectors::vignette_word())
             .next()
             .unwrap()
             .text()
@@ -38,13 +38,13 @@ pub fn search(client: &reqwest::Client, term: &str) -> Result<()> {
             .unwrap();
 
         let source = vignette
-            .select(selectors::vignette_source_selector())
+            .select(selectors::vignette_source())
             .next()
             .and_then(|source| source.value().attr("href"))
             .unwrap();
 
         let snippet = vignette
-            .select(selectors::vignette_snippet_selector())
+            .select(selectors::vignette_snippet())
             .next()
             .and_then(|snippet| snippet.text().next())
             .map(|snippet| snippet.trim());
@@ -176,10 +176,10 @@ fn prefetch(
 }
 
 selectors! {
-    selector!(vignette_selector = ".vignette");
-    selector!(vignette_word_selector = "strong");
-    selector!(vignette_source_selector = "a.vignette__label");
-    selector!(vignette_snippet_selector = ".vignette__snippet");
+    selector!(vignette = ".vignette");
+    selector!(vignette_word = "strong");
+    selector!(vignette_source = "a.vignette__label");
+    selector!(vignette_snippet = ".vignette__snippet");
 }
 
 mod tty {
