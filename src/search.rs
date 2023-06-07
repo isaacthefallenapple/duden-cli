@@ -81,13 +81,23 @@ pub fn search(client: &reqwest::Client, term: &str) -> Result<()> {
     }
 
     let mut input = String::new();
-    stdin().read_line(&mut input)?;
+    let selection: usize = loop {
+        input.clear();
 
-    let selection: usize = input.trim().parse().expect("not a number");
+        stdin().read_line(&mut input)?;
 
-    if selection >= results.len() {
-        anyhow::bail!("invlid selection: {selection}");
-    }
+        let Ok(selection) = input.trim().parse() else {
+            eprintln!("invalid number: {input}");
+            continue;
+        };
+
+        if selection >= results.len() {
+            eprintln!("invlid selection: {selection}");
+            continue;
+        }
+
+        break selection;
+    };
 
     let result = rx
         .try_iter()
