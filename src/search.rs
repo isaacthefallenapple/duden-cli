@@ -120,8 +120,9 @@ pub fn search(client: &reqwest::Client, term: &str) -> Result<()> {
     let (_rows, _) = tty::size();
 
     println!();
-    if cfg!(unix) {
-        let mut cmd = std::process::Command::new("/bin/less")
+
+    let less_success = cfg!(unix) && {
+        let cmd = std::process::Command::new("/bin/less")
             .args([
                 "-RF",
                 "-P",
@@ -129,13 +130,14 @@ pub fn search(client: &reqwest::Client, term: &str) -> Result<()> {
                 "--",
                 tempfile_name.to_str().unwrap(),
             ])
-            .spawn()?;
+            .spawn();
 
-        drop(cmd.wait());
-    } else {
-        let mut bufreader = BufReader::new(&mut temp);
+        cmd.is_ok_and(|mut cmd| cmd.wait().is_ok())
+    };
+
+    if !less_success {
         let mut stdout = std::io::stdout();
-        std::io::copy(&mut bufreader, &mut stdout).unwrap();
+        std::io::copy(&mut temp, &mut stdout).unwrap();
         stdout.flush().unwrap();
     }
 
