@@ -99,11 +99,7 @@ pub fn search(client: &reqwest::Client, term: &str) -> Result<()> {
         break selection;
     };
 
-    let result = rx
-        .try_iter()
-        .find(|(i, _)| i == &selection)
-        .or_else(|| rx.iter().find(|(i, _)| i == &selection))
-        .map(|res| res.1);
+    let result = rx.iter().find(|(i, _)| i == &selection).map(|res| res.1);
 
     let result = result.unwrap()?;
 
