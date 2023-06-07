@@ -120,6 +120,7 @@ pub fn search(client: &reqwest::Client, term: &str) -> Result<()> {
 
     let (_rows, _) = tty::size();
 
+    println!();
     if cfg!(unix) {
         let mut cmd = std::process::Command::new("/bin/less")
             .args([
@@ -133,7 +134,6 @@ pub fn search(client: &reqwest::Client, term: &str) -> Result<()> {
 
         drop(cmd.wait());
     } else {
-        println!();
         for line in BufReader::new(&mut temp).lines() {
             let line = line?;
             println!("{line}");
