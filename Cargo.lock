@@ -153,6 +153,7 @@ dependencies = [
  "paste",
  "reqwest",
  "scraper",
+ "winapi",
 ]
 
 [[package]]

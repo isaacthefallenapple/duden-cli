@@ -10,3 +10,4 @@ anyhow = "1.0.71"
 paste = "1.0.12"
 reqwest = { version = "0.11.18", features = ["blocking"] }
 scraper = { version = "0.16.0", features = ["atomic"] }
+winapi = { version = "0.3.9", features = ["wincon", "processenv", "winbase"] }

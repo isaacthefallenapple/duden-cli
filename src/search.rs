@@ -1,5 +1,5 @@
 use std::fmt;
-use std::io::{prelude::*, stdin, BufReader, SeekFrom};
+use std::io::{prelude::*, stdin, BufReader};
 use std::sync::mpsc;
 use std::thread;
 
@@ -100,22 +100,40 @@ pub fn search(client: &reqwest::Client, term: &str) -> Result<()> {
 
     let definition = definition::Definition::parse(result.root_element())?;
 
-    let tempfile_name = "/tmp/duden.tmp";
+    let tempfile_name = {
+        let mut tempdir = std::env::temp_dir();
+        tempdir.push("duden.tmp");
+        tempdir
+    };
+
     let mut temp = std::fs::OpenOptions::new()
         .create(true)
+        .truncate(true)
         .read(true)
         .write(true)
-        .open(tempfile_name)?;
+        .open(&tempfile_name)?;
 
     write!(temp, "{definition}")?;
     temp.flush()?;
 
-    let mut cmd = std::process::Command::new("/bin/less")
-        .arg("-R")
-        .arg(tempfile_name)
-        .spawn()?;
+    temp.rewind()?;
 
-    drop(cmd.wait());
+    let (_rows, _) = tty::size();
+
+    if cfg!(unix) {
+        let mut cmd = std::process::Command::new("/bin/less")
+            .arg("-RF")
+            .arg(tempfile_name.to_str().unwrap())
+            .spawn()?;
+
+        drop(cmd.wait());
+    } else {
+        println!();
+        for line in BufReader::new(&mut temp).lines() {
+            let line = line?;
+            println!("{line}");
+        }
+    }
 
     Ok(())
 }
@@ -157,4 +175,57 @@ selectors! {
     selector!(vignette_word_selector = "strong");
     selector!(vignette_source_selector = "a.vignette__label");
     selector!(vignette_snippet_selector = ".vignette__snippet");
+}
+
+mod tty {
+    #[cfg(unix)]
+    pub use unix::size;
+
+    #[cfg(windows)]
+    pub use windows::size;
+
+    #[cfg(not(any(unix, windows)))]
+    pub fn size() -> (i16, i16) {
+        panic!("unsupported platform")
+    }
+
+    #[cfg(unix)]
+    mod unix {
+        use std::process::Stdio;
+
+        pub fn size() -> (i16, i16) {
+            // this doesn't strike me as particularly portable(?)
+            let stty = std::process::Command::new("/bin/stty")
+                .arg("size")
+                .stdout(Stdio::piped())
+                .spawn()
+                .expect("internal error (possibly not a tty)");
+
+            let tty_size = stty.wait_with_output().expect("internal error");
+            let tty_size = std::str::from_utf8(&tty_size.stdout).unwrap();
+            let mut coords = tty_size
+                .split_whitespace()
+                .take(2)
+                .map(|coord| coord.parse().unwrap());
+
+            (coords.next().unwrap(), coords.next().unwrap())
+        }
+    }
+
+    #[cfg(windows)]
+    mod windows {
+        use winapi::um::processenv::GetStdHandle;
+        use winapi::um::winbase::STD_OUTPUT_HANDLE;
+        use winapi::um::wincon::{GetConsoleScreenBufferInfo, CONSOLE_SCREEN_BUFFER_INFO};
+
+        pub fn size() -> (i16, i16) {
+            unsafe {
+                let handle = GetStdHandle(STD_OUTPUT_HANDLE);
+                let mut info = CONSOLE_SCREEN_BUFFER_INFO::default();
+                GetConsoleScreenBufferInfo(handle, &mut info as *mut _);
+                let coord = info.dwSize;
+                (coord.Y as i16, coord.X as i16)
+            }
+        }
+    }
 }
