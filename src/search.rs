@@ -1,5 +1,5 @@
 use std::fmt;
-use std::io::{prelude::*, stdin, BufReader};
+use std::io::{prelude::*, stdin};
 use std::sync::mpsc;
 use std::thread;
 
@@ -77,8 +77,7 @@ pub fn search(client: &reqwest::Client, term: &str) -> Result<()> {
 
         handles.push(handle);
 
-        print!("[{i: >2}] ");
-        println!("{item}");
+        println!("[{i: >2}] {item}");
     }
 
     let mut input = String::new();
@@ -134,10 +133,10 @@ pub fn search(client: &reqwest::Client, term: &str) -> Result<()> {
 
         drop(cmd.wait());
     } else {
-        for line in BufReader::new(&mut temp).lines() {
-            let line = line?;
-            println!("{line}");
-        }
+        let mut bufreader = BufReader::new(&mut temp);
+        let mut stdout = std::io::stdout();
+        std::io::copy(&mut bufreader, &mut stdout).unwrap();
+        stdout.flush().unwrap();
     }
 
     Ok(())
