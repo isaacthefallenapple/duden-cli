@@ -123,6 +123,8 @@ pub fn search(client: &reqwest::Client, term: &str) -> Result<()> {
     if cfg!(unix) {
         let mut cmd = std::process::Command::new("/bin/less")
             .arg("-RF")
+            .args(["-P", &definition.title()])
+            .arg("--")
             .arg(tempfile_name.to_str().unwrap())
             .spawn()?;
 

@@ -14,6 +14,14 @@ pub struct Definition<'a> {
     meanings: Vec<Meaning<'a>>,
 }
 
+impl Definition<'_> {
+    pub fn title(&self) -> String {
+        let mut buf = String::new();
+        crate::fmt::write_text_trimmed(&mut buf, true, self.title.clone()).unwrap();
+        buf
+    }
+}
+
 impl fmt::Display for Definition<'_> {
     fn fmt(&self, mut f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "\x1b[1m")?;
